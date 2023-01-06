@@ -258,14 +258,34 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 
-			textBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+			// decode base64 if encoding is base64
+			if strings.ToLower(part.Header.Get("Content-Transfer-Encoding")) == "base64" {
+				decoded := make([]byte, base64.StdEncoding.DecodedLen(len(ppContent)))
+				_, err := base64.StdEncoding.Decode(decoded, ppContent)
+				if err != nil {
+					return textBody, htmlBody, attachments, embeddedFiles, err
+				}
+				textBody += strings.TrimSuffix(string(decoded), "\n")
+			} else {
+				textBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+			}
 		} else if contentType == contentTypeTextHtml {
 			ppContent, err := ioutil.ReadAll(part)
 			if err != nil {
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 
-			htmlBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+			// decode base64 if encoding is base64
+			if strings.ToLower(part.Header.Get("Content-Transfer-Encoding")) == "base64" {
+				decoded := make([]byte, base64.StdEncoding.DecodedLen(len(ppContent)))
+				_, err := base64.StdEncoding.Decode(decoded, ppContent)
+				if err != nil {
+					return textBody, htmlBody, attachments, embeddedFiles, err
+				}
+				htmlBody += strings.TrimSuffix(string(decoded), "\n")
+			} else {
+				htmlBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+			}
 		} else {
 			return textBody, htmlBody, attachments, embeddedFiles, fmt.Errorf("Unknown multipart/mixed nested mime type: %s", contentType)
 		}
