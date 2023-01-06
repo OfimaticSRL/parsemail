@@ -330,25 +330,33 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 }
 
 func isAttachment(part *multipart.Part) bool {
-	return part.FileName() != ""
+	return part.FileName() != "" || part.Header.Get("Content-Disposition") == strings.ToLower("attachment")
 }
 
 func decodeAttachment(part *multipart.Part) (at Attachment, err error) {
-	filename := decodeMimeSentence(part.FileName())
 	decoded, err := decodeContent(part, part.Header.Get("Content-Transfer-Encoding"))
 	if err != nil {
 		return
 	}
+	contentTypePart := strings.Split(part.Header.Get("Content-Type"), ";")
 
+	// get filename from filename or from second part (commonly is name, name=Test.txt)
+	filename := decodeMimeSentence(part.FileName())
+	if filename == "" {
+		secondPart := strings.Split(contentTypePart[1], "=")
+		if len(secondPart) == 2 {
+			filename = strings.ReplaceAll(secondPart[1], "\"", "")
+		}
+	}
 	at.Filename = filename
 	at.Data = decoded
-	at.ContentType = strings.Split(part.Header.Get("Content-Type"), ";")[0]
+	at.ContentType = contentTypePart[0]
 
 	return
 }
 
 func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
-	switch encoding {
+	switch strings.ToLower(encoding) {
 	case "base64":
 		decoded := base64.NewDecoder(base64.StdEncoding, content)
 		b, err := ioutil.ReadAll(decoded)
