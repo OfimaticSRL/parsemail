@@ -1,3 +1,3 @@
-module github.com/EVANA-AG/parsemail
+module github.com/OfimaticSRL/parsemail
 
 go 1.12
