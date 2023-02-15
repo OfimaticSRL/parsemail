@@ -185,9 +185,11 @@ func parseMultipartAlternative(msg io.Reader, boundary string) (textBody, htmlBo
 			return textBody, htmlBody, embeddedFiles, err
 		}
 
+		transferEncoding := part.Header.Get("Content-Transfer-Encoding")
+
 		switch contentType {
 		case contentTypeTextPlain:
-			ppContent, err := decodeContent(part, contentType)
+			ppContent, err := decodeContent(part, transferEncoding)
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
@@ -195,7 +197,7 @@ func parseMultipartAlternative(msg io.Reader, boundary string) (textBody, htmlBo
 			message, _ := ioutil.ReadAll(ppContent)
 			textBody += strings.TrimSuffix(string(message[:]), "\n")
 		case contentTypeTextHtml:
-			ppContent, err := decodeContent(part, contentType)
+			ppContent, err := decodeContent(part, transferEncoding)
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
