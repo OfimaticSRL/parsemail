@@ -128,21 +128,25 @@ func parseMultipartRelated(msg io.Reader, boundary string) (textBody, htmlBody s
 			return textBody, htmlBody, embeddedFiles, err
 		}
 
+		transferEncoding := part.Header.Get("Content-Transfer-Encoding")
+
 		switch contentType {
 		case contentTypeTextPlain:
-			ppContent, err := ioutil.ReadAll(part)
+			ppContent, err := decodeContent(part, transferEncoding)
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
 
-			textBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+			message, _ := ioutil.ReadAll(ppContent)
+			textBody += strings.TrimSuffix(string(message[:]), "\n")
 		case contentTypeTextHtml:
-			ppContent, err := ioutil.ReadAll(part)
+			ppContent, err := decodeContent(part, transferEncoding)
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
 
-			htmlBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+			message, _ := ioutil.ReadAll(ppContent)
+			htmlBody += strings.TrimSuffix(string(message[:]), "\n")
 		case contentTypeMultipartAlternative:
 			tb, hb, ef, err := parseMultipartAlternative(part, params["boundary"])
 			if err != nil {
