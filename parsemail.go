@@ -20,6 +20,8 @@ const contentTypeMultipartRelated = "multipart/related"
 const contentTypeTextHtml = "text/html"
 const contentTypeTextPlain = "text/plain"
 
+const errInvalidWord = "mime: invalid RFC 2047 encoded-word"
+
 // Parse an email message read from io.Reader into parsemail.Email struct
 func Parse(r io.Reader) (email Email, err error) {
 	msg, err := mail.ReadMessage(r)
@@ -314,6 +316,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 func decodeMimeSentence(s string) string {
 	result := []string{}
 	ss := strings.Split(s, " ")
+	var lastWord string
 
 	for _, word := range ss {
 		dec := new(mime.WordDecoder)
@@ -322,11 +325,22 @@ func decodeMimeSentence(s string) string {
 			if len(result) == 0 {
 				w = word
 			} else {
-				w = " " + word
+				// workaround to avoid double spaces from lastWord and current word
+				if len(lastWord) > 0 && lastWord[len(lastWord)-1] == 32 {
+					w = word
+				} else {
+					w = " " + word
+				}
+			}
+
+			// when errInvalidWord, add a space
+			if err.Error() == errInvalidWord {
+				w += " "
 			}
 		}
 
 		result = append(result, w)
+		lastWord = w
 	}
 
 	return strings.Join(result, "")
